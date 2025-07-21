@@ -187,26 +187,30 @@ if __name__ == "__main__":
         sys.exit(1)
 
     url = sys.argv[1].strip()
-    #print("url::::::" + url)
+    logging.info(f"Starting transcript extraction for: {url}")
+
+    # Step 1: Try subtitles using yt-dlp
     transcript = download_subtitles(url)
 
     try:
         parsed = json.loads(transcript)
         if "error" in parsed:
-            logging.warning("Subtitles not found. Scanning page HTML for VTT...")
+            logging.warning("Subtitles not found. Trying HTML page scan for .vtt...")
             vtt_url = extract_vtt_from_html_page(url)
 
             if vtt_url:
-                logging.info("Retrying with direct VTT URL...")
+                logging.info(f"Retrying with direct VTT URL: {vtt_url}")
                 transcript = download_vtt_and_process(vtt_url)
                 parsed = json.loads(transcript)
 
+        # Step 2: Fallback to Whisper if still failed
         if "error" in parsed:
-            logging.warning("PYTHON OUTPUT: Subtitles not available. Falling back to Whisper (audio only)...")
-            whisper_transcript = transcribe_with_whisper_audio(url)
-            print(whisper_transcript)
-        else:
-            print(transcript)
+            logging.warning("Falling back to Whisper (audio transcription)...")
+            transcript = transcribe_with_whisper_audio(url)
+
+        print(transcript)
 
     except json.JSONDecodeError:
+        logging.error("Transcript output was not JSON — printing raw result.")
         print(transcript)
+

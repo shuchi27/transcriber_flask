@@ -99,6 +99,7 @@ def transcribe_with_whisper_audio(video_url, output_path="downloaded_audio.mp3")
     try:
         subprocess.run([
             "yt-dlp",
+            "--cookies", "youtube.com_cookies.txt"
             "-f", "bestaudio",
             "--extract-audio",
             "--audio-format", "mp3",

@@ -8,7 +8,7 @@ import json
 import logging
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
+#changes reflecteddddddddddd************************************
 # Set up logging to file
 log_file_path = os.path.join(BASE_DIR, "transcript_debug.log")
 logging.basicConfig(

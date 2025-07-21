@@ -1,0 +1,9 @@
+_pycache__/
+*.pyc
+.env
+.history/
+*.log
+venv/
+.idea/
+*.swp
+.DS_Store

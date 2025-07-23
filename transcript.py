@@ -122,8 +122,10 @@ print(json.dumps({{"text": result['text']}}))
     finally:
         os.remove(temp_script_path)
 
-def transcribe_with_whisper_audio(video_url, output_path="downloaded_audio.mp3"):
+def transcribe_with_whisper_audio(video_url):
     #print("PYTHON OUTPUT: [downloading audio]...")
+    uid = str(uuid.uuid4())
+    output_path = f"transcribed_audio_{uid}.mp3"
 
     try:
         subprocess.run([

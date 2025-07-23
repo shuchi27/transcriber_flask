@@ -6,8 +6,9 @@ import uuid
 import sys
 import json
 import logging
-from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound
+from youtube_transcript_api import YouTubeTranscriptApi
 from urllib.parse import urlparse, parse_qs
+from youtube_transcript_api.formatters import TextFormatter
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 #changes reflecteddddddddddd************************************
@@ -20,15 +21,26 @@ logging.basicConfig(
     format='%(asctime)s [%(levelname)s] %(message)s'
 )
 
+def get_video_id(url):
+    if "youtu.be" in url:
+        return url.split("/")[-1]
+    elif "youtube.com" in url:
+        return url.split("v=")[1].split("&")[0]
+    return None
+
 def get_transcript_youtube_api(url):
     try:
         # Extract video ID from YouTube URL
         logging.info("Using youtube_transcript_api fallback...")  
         query = urlparse(url)
+        logging.info(query)  
+
         if query.hostname in ['www.youtube.com', 'youtube.com']:
             video_id = parse_qs(query.query).get("v", [None])[0]
+            logging.info(video_id) 
         elif query.hostname in ['youtu.be']:
             video_id = query.path[1:]
+            logging.info(video_id) 
         else:
             return None
 
@@ -37,7 +49,6 @@ def get_transcript_youtube_api(url):
 
         # Fetch transcript using API
         transcript = YouTubeTranscriptApi.get_transcript(video_id)
-
         full_text = "\n".join([entry["text"] for entry in transcript])
         return full_text
 
@@ -223,7 +234,23 @@ if __name__ == "__main__":
     url = sys.argv[1].strip()
     logging.info(f"Starting transcript extraction for: {url}")
 
-    # Step 1: Try subtitles using yt-dlp
+    # Step 1: Try YouTubeTranscriptApi first
+    try:
+        video_id = get_video_id(url)
+
+        ytt_api = YouTubeTranscriptApi()
+        fetched = ytt_api.fetch(video_id)
+        #transcript_data = YouTubeTranscriptApi.get_transcript(video_id)
+        formatter = TextFormatter()
+        text = formatter.format_transcript(fetched)
+
+        #text = "\n\n".join([item["text"] for item in transcript_data])
+        print(json.dumps({"text": text})) 
+        sys.exit(0)
+    except Exception as e:
+        logging.warning(f"YouTubeTranscriptApi failed: {e}")
+
+    # Step 2: Try subtitles using yt-dlp
     transcript = download_subtitles(url)
 
     try:
@@ -237,17 +264,7 @@ if __name__ == "__main__":
                 transcript = download_vtt_and_process(vtt_url)
                 parsed = json.loads(transcript)
 
-        # Step 1.5: Try youtube_transcript_api as an additional fallback
-        if "error" in parsed:
-            logging.warning("Trying youtube_transcript_api fallback...")
-            yt_api_result = get_transcript_youtube_api(url)
-            
-            if yt_api_result:
-                transcript = json.dumps({"text": yt_api_result})
-                print(transcript)
-                sys.exit(0)
-
-        # Step 2: Fallback to Whisper if still failed
+        # Step 3: Fallback to Whisper if still failed
         if "error" in parsed:
             logging.warning("Falling back to Whisper (audio transcription)...")
             transcript = transcribe_with_whisper_audio(url)
@@ -257,4 +274,3 @@ if __name__ == "__main__":
     except json.JSONDecodeError:
         logging.error("Transcript output was not JSON — printing raw result.")
         print(transcript)
-

@@ -171,6 +171,7 @@ def download_subtitles(url):
         result = subprocess.run(
             [
                 "yt-dlp",
+                "--cookies", "youtube.com_cookies.txt",
                 "--write-sub",
                 "--write-auto-sub",
                 "--sub-lang", "en",

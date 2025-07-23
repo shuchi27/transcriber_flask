@@ -36,7 +36,7 @@ def get_transcript_youtube_api(url):
             return None
 
         # Fetch transcript using API
-        transcript = YouTubeTranscriptApi.get_transcript(video_id)
+        transcript = YouTubeTranscriptApi.fetch(video_id)
         full_text = "\n".join([entry["text"] for entry in transcript])
         return full_text
 
@@ -130,10 +130,11 @@ def transcribe_with_whisper_audio(video_url):
     try:
         subprocess.run([
             "yt-dlp",
-            "--cookies", "youtube.com_cookies.txt"
+            "--cookies", "youtube.com_cookies.txt",
             "-f", "bestaudio",
             "--extract-audio",
             "--audio-format", "mp3",
+            "--no-playlist",
             "-o", output_path,
             video_url
         ], check=True)

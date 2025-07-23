@@ -2,9 +2,10 @@ from flask import Flask, request, jsonify
 import subprocess
 import os
 import json
+import sys
 
 app = Flask(__name__)
-
+python_path = sys.executable
 @app.route("/transcript", methods=["GET"])
 def get_transcript():
     url = request.args.get("url")
@@ -15,7 +16,7 @@ def get_transcript():
         script_path = os.path.join(os.path.dirname(__file__), "transcript.py")
 
         process = subprocess.Popen(
-            ["python3", script_path, url.strip()],
+            [python_path, script_path, url.strip()],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
         )

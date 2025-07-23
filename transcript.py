@@ -6,6 +6,8 @@ import uuid
 import sys
 import json
 import logging
+from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound
+from urllib.parse import urlparse, parse_qs
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 #changes reflecteddddddddddd************************************
@@ -17,6 +19,33 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s'
 )
+
+def get_transcript_youtube_api(url):
+    try:
+        # Extract video ID from YouTube URL
+        logging.info("Using youtube_transcript_api fallback...")  
+        query = urlparse(url)
+        if query.hostname in ['www.youtube.com', 'youtube.com']:
+            video_id = parse_qs(query.query).get("v", [None])[0]
+        elif query.hostname in ['youtu.be']:
+            video_id = query.path[1:]
+        else:
+            return None
+
+        if not video_id:
+            return None
+
+        # Fetch transcript using API
+        transcript = YouTubeTranscriptApi.get_transcript(video_id)
+        full_text = "\n".join([entry["text"] for entry in transcript])
+        return full_text
+
+    except (TranscriptsDisabled, NoTranscriptFound) as e:
+        print(f"[youtube_transcript_api] Transcript not found or disabled: {e}")
+        return None
+    except Exception as e:
+        print(f"[youtube_transcript_api] Failed: {e}")
+        return None
 
 def format_transcript(raw_text):
     lines = raw_text.splitlines()
@@ -203,6 +232,16 @@ if __name__ == "__main__":
                 logging.info(f"Retrying with direct VTT URL: {vtt_url}")
                 transcript = download_vtt_and_process(vtt_url)
                 parsed = json.loads(transcript)
+
+        # Step 1.5: Try youtube_transcript_api as an additional fallback
+        if "error" in parsed:
+            logging.warning("Trying youtube_transcript_api fallback...")
+            yt_api_result = get_transcript_youtube_api(url)
+            
+            if yt_api_result:
+                transcript = json.dumps({"text": yt_api_result})
+                print(transcript)
+                sys.exit(0)
 
         # Step 2: Fallback to Whisper if still failed
         if "error" in parsed:

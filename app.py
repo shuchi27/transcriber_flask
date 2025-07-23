@@ -42,15 +42,24 @@ def get_transcript():
 
         try:
             parsed = json.loads(result)
-            if isinstance(parsed, dict) and "transcript" in parsed and "file_path" in parsed:
+            # If Whisper or YouTubeTranscriptApi returned result
+            if isinstance(parsed, dict) and "transcript" in parsed:
                 return jsonify({
-                    "transcript": parsed["transcript"],
-                    "saved_to": parsed["file_path"]
+                    "method": parsed.get("method", "unknown"),
+                    "transcript": parsed["transcript"]
                 }), 200
-        except:
-            pass
 
-        return result, 200, {"Content-Type": "text/plain"}
+            # If yt-dlp with .vtt file worked
+            elif isinstance(parsed, str):
+                return jsonify({
+                    "method": "yt-dlp subtitles",
+                    "transcript": parsed
+                }), 200
+
+        except json.JSONDecodeError:
+                # If not JSON, return as plain text
+            return result, 200, {"Content-Type": "text/plain"}
+
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500

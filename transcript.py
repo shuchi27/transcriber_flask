@@ -36,7 +36,8 @@ def get_transcript_youtube_api(url):
             return None
 
         # Fetch transcript using API
-        transcript = YouTubeTranscriptApi.fetch(video_id)
+        transcript = YouTubeTranscriptApi.get_transcript(video_id)
+
         full_text = "\n".join([entry["text"] for entry in transcript])
         return full_text
 
